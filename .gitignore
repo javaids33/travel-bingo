@@ -1,0 +1,29 @@
+# Development files
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+
+# Environment files (if added later)
+.env
+.env.local
+
+# Build artifacts (if added later)
+dist/
+build/
+node_modules/
+
+# API keys (prevent accidental commits)
+*apikey*
+*api-key*
+secret*.js

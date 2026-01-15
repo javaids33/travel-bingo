@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Travel Bingo - Explore with AI</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌍 Travel Bingo</h1>
+            <p class="subtitle">Gamify your exploration with AI-powered challenges</p>
+        </header>
+
+        <main>
+            <section class="location-input">
+                <h2>Where are you exploring?</h2>
+                <div class="input-group">
+                    <input type="text" id="locationInput" placeholder="e.g., Kamakura Station, Japan" />
+                    <button id="useMyLocation" class="btn btn-secondary">
+                        📍 Use My Location
+                    </button>
+                </div>
+                <button id="generateBingo" class="btn btn-primary">
+                    Generate Bingo Card
+                </button>
+                <div id="loadingIndicator" class="loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>Creating your personalized bingo card...</p>
+                </div>
+            </section>
+
+            <section id="bingoSection" class="bingo-section" style="display: none;">
+                <div class="bingo-header">
+                    <h2>Your Travel Bingo Card</h2>
+                    <p id="currentLocation" class="location-display"></p>
+                    <button id="resetBingo" class="btn btn-small">🔄 New Card</button>
+                </div>
+                <div id="bingoCard" class="bingo-card"></div>
+                <div class="bingo-stats">
+                    <p>Completed: <span id="completedCount">0</span> / 25</p>
+                    <p id="bingoMessage" class="bingo-message"></p>
+                </div>
+            </section>
+
+            <section class="info-section">
+                <h3>How to Play</h3>
+                <ul>
+                    <li>Enter your location or use GPS to detect where you are</li>
+                    <li>Get an AI-generated bingo card with 25 unique exploration challenges</li>
+                    <li>Click on challenges as you complete them</li>
+                    <li>Try to get 5 in a row (horizontal, vertical, or diagonal) for BINGO!</li>
+                </ul>
+            </section>
+        </main>
+
+        <footer>
+            <p>Made with ❤️ for travelers and explorers</p>
+        </footer>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
