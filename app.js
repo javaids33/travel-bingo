@@ -78,7 +78,11 @@ class TravelBingo {
             );
             const data = await response.json();
             
-            // Extract meaningful location name
+            // Extract meaningful location name with null checks
+            if (!data || !data.address) {
+                return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+            }
+            
             const address = data.address;
             const parts = [];
             
@@ -169,7 +173,10 @@ class TravelBingo {
     }
 
     async generateChallengesWithAI(location, apiKey) {
-        const prompt = `Generate exactly 24 unique, fun, and interesting exploration challenges for someone visiting ${location}. These should be specific to the location and help them discover local culture, food, landmarks, nature, and hidden gems. Make them actionable and suitable for a bingo card game. Each challenge should be 3-8 words long. Return as a JSON array of strings.
+        // Sanitize location input to prevent prompt injection
+        const sanitizedLocation = location.replace(/[^\w\s,.-]/g, '').substring(0, 100);
+        
+        const prompt = `Generate exactly 24 unique, fun, and interesting exploration challenges for someone visiting ${sanitizedLocation}. These should be specific to the location and help them discover local culture, food, landmarks, nature, and hidden gems. Make them actionable and suitable for a bingo card game. Each challenge should be 3-8 words long. Return as a JSON array of strings.
 
 Example format: ["Try local street food", "Visit a historic temple", "Take a photo at sunset"]`;
 
@@ -203,11 +210,17 @@ Example format: ["Try local street food", "Visit a historic temple", "Take a pho
         const data = await response.json();
         const content = data.choices[0].message.content.trim();
         
-        // Parse JSON response
-        let challenges = JSON.parse(content);
+        // Parse JSON response with error handling
+        let challenges;
+        try {
+            challenges = JSON.parse(content);
+        } catch (parseError) {
+            console.error('Failed to parse AI response:', parseError);
+            throw new Error('Invalid JSON from AI');
+        }
         
         // Ensure we have 24 challenges
-        if (challenges.length < 24) {
+        if (!Array.isArray(challenges) || challenges.length < 24) {
             throw new Error('Insufficient challenges generated');
         }
         

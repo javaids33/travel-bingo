@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      # Temporary: Remove feature branch after PR is merged
       - copilot/create-bingo-card-web-app
   workflow_dispatch:
 
