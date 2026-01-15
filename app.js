@@ -21,9 +21,19 @@ class TravelBingo {
         });
     }
 
+    showToast(message, type = 'info') {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.className = 'toast show ' + type;
+        
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 3000);
+    }
+
     async useGeolocation() {
         if (!navigator.geolocation) {
-            alert('Geolocation is not supported by your browser');
+            this.showToast('Geolocation is not supported by your browser', 'error');
             return;
         }
 
@@ -43,12 +53,13 @@ class TravelBingo {
             document.getElementById('locationInput').value = locationName;
             
             btn.textContent = '📍 Location detected!';
+            this.showToast('Location detected successfully!', 'success');
             setTimeout(() => {
                 btn.textContent = '📍 Use My Location';
                 btn.disabled = false;
             }, 2000);
         } catch (error) {
-            alert('Unable to get your location. Please enter it manually.');
+            this.showToast('Unable to get your location. Please enter it manually.', 'error');
             btn.textContent = '📍 Use My Location';
             btn.disabled = false;
         }
@@ -61,7 +72,7 @@ class TravelBingo {
                 `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
                 {
                     headers: {
-                        'User-Agent': 'TravelBingo/1.0'
+                        'User-Agent': 'TravelBingo/1.0 (github.com/javaids33/travel-bingo)'
                     }
                 }
             );
@@ -94,7 +105,7 @@ class TravelBingo {
         const location = document.getElementById('locationInput').value.trim();
         
         if (!location) {
-            alert('Please enter a location or use your current location');
+            this.showToast('Please enter a location or use your current location', 'error');
             return;
         }
 
@@ -121,7 +132,7 @@ class TravelBingo {
             document.getElementById('bingoSection').scrollIntoView({ behavior: 'smooth' });
         } catch (error) {
             console.error('Error generating bingo card:', error);
-            alert('Failed to generate bingo card. Please try again.');
+            this.showToast('Failed to generate bingo card. Please try again.', 'error');
         } finally {
             document.getElementById('loadingIndicator').style.display = 'none';
             document.getElementById('generateBingo').disabled = false;
@@ -145,20 +156,14 @@ class TravelBingo {
     }
 
     getApiKey() {
-        // Check for API key in various places
-        // 1. Environment variable (if deployed)
-        if (typeof OPENAI_API_KEY !== 'undefined') {
-            return OPENAI_API_KEY;
-        }
-        
-        // 2. LocalStorage (for development)
+        // Check for API key in localStorage (for development)
         const storedKey = localStorage.getItem('openai_api_key');
         if (storedKey) {
             return storedKey;
         }
         
-        // 3. Prompt user to enter (optional)
-        // This would be implemented in a settings panel
+        // Note: OPENAI_API_KEY should be injected at build time for production
+        // Never hardcode API keys in client-side code
         
         return null;
     }

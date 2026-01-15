@@ -1,13 +1,15 @@
 // Configuration for Travel Bingo
-// This file can be used to configure API keys and other settings
+// This file can be used to configure settings
 
 // To enable AI-powered challenge generation:
 // 1. Get an OpenAI API key from https://platform.openai.com/api-keys
-// 2. Uncomment and add your key below:
-// const OPENAI_API_KEY = 'your-api-key-here';
+// 2. Set the API key in localStorage (for development/testing):
+//    Open browser console and run:
+//    localStorage.setItem('openai_api_key', 'your-api-key-here');
 
-// Alternatively, you can set the API key in localStorage:
-// localStorage.setItem('openai_api_key', 'your-api-key-here');
+// For production deployment:
+// - Use environment variables or GitHub Secrets
+// - Inject the API key during the build process
+// - Never hardcode API keys in client-side code for security reasons
 
-// Note: For production deployment, use environment variables or GitHub Secrets
-// and inject them during the build process
+// Note: The app works without an API key using fallback challenges
