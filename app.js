@@ -100,12 +100,15 @@ class TravelBingo {
 
             // Fallback to traditional download for browsers without Web Share API
             // or when Web Share API fails
-            // Reuse the blob by converting to object URL
-            const link = document.createElement('a');
-            link.download = fileName;
-            link.href = URL.createObjectURL(blob);
+
+            // Show success and clean up only after the click event is dispatched
+            link.addEventListener('click', () => {
+                this.showToast('Bingo card saved to your device!', 'success');
+                // Clean up the object URL after a short delay to ensure download initiated
+                setTimeout(() => URL.revokeObjectURL(link.href), this.DOWNLOAD_CLEANUP_DELAY_MS);
+            });
+
             link.click();
-            
             // Clean up the object URL after a short delay to ensure download initiated
             setTimeout(() => URL.revokeObjectURL(link.href), this.DOWNLOAD_CLEANUP_DELAY_MS);
 
