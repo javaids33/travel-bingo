@@ -16,7 +16,7 @@ class ProxyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         super().__init__(*args, **kwargs)
         # Configuration
         self.API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent'
-        self.API_KEY = 'AIzaSyBKJ2-b6D2jUtsN9uJYhOLtASAXKV7wX-k' 
+        self.API_KEY = 'AIzaSyBte-tlbzRQPaZOXwAHQEBaEMLX4oL-G5I' 
 
     def do_POST(self):
         if self.path == '/api/generate':
