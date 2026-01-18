@@ -48,7 +48,15 @@ class TravelBingo {
             });
 
             // Convert canvas to blob
-            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            const blob = await new Promise((resolve, reject) => {
+                canvas.toBlob((blob) => {
+                    if (blob) {
+                        resolve(blob);
+                    } else {
+                        reject(new Error('Failed to convert canvas to blob'));
+                    }
+                }, 'image/png');
+            });
             
             const sanitizedLocation = this.currentLocation.replace(/[^a-z0-9]/gi, '_').toLowerCase();
             const fileName = `travel-bingo-${sanitizedLocation}.png`;
@@ -80,10 +88,14 @@ class TravelBingo {
             }
 
             // Fallback to traditional download for browsers without Web Share API
+            // Reuse the blob by converting to object URL
             const link = document.createElement('a');
             link.download = fileName;
-            link.href = canvas.toDataURL('image/png');
+            link.href = URL.createObjectURL(blob);
             link.click();
+            
+            // Clean up the object URL after download
+            setTimeout(() => URL.revokeObjectURL(link.href), 100);
 
             this.showToast('Bingo card saved to your device!', 'success');
         } catch (error) {
