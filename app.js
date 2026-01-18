@@ -65,7 +65,8 @@ class TravelBingo {
             const fileName = `travel-bingo-${sanitizedLocation}.png`;
 
             // Check if Web Share API is supported
-            if (navigator.share && navigator.canShare) {
+            // Use 'canShare' in navigator to safely check if the method exists
+            if (navigator.share && 'canShare' in navigator) {
                 // Create File object from blob
                 const file = new File([blob], fileName, { type: 'image/png' });
                 
@@ -85,12 +86,15 @@ class TravelBingo {
                             this.showToast('Share cancelled', 'info');
                             return;
                         }
+                        // Share failed, fall through to download with appropriate message
                         console.log('Share failed, falling back to download:', shareError);
+                        this.showToast('Share unavailable. Downloading instead...', 'info');
                     }
                 }
             }
 
             // Fallback to traditional download for browsers without Web Share API
+            // or when Web Share API fails
             // Reuse the blob by converting to object URL
             const link = document.createElement('a');
             link.download = fileName;
@@ -100,7 +104,11 @@ class TravelBingo {
             // Clean up the object URL after a short delay to ensure download initiated
             setTimeout(() => URL.revokeObjectURL(link.href), this.DOWNLOAD_CLEANUP_DELAY_MS);
 
-            this.showToast('Bingo card saved to your device!', 'success');
+            // Only show success message if we didn't already show a fallback message
+            // Check if we came from the fallback path (not from share failure)
+            if (!navigator.share || !('canShare' in navigator)) {
+                this.showToast('Bingo card saved to your device!', 'success');
+            }
         } catch (error) {
             console.error('Export failed:', error);
             this.showToast('Failed to save bingo card. Please try taking a screenshot.', 'error');
