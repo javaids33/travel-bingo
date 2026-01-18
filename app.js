@@ -4,9 +4,6 @@ class TravelBingo {
         this.currentLocation = '';
         this.bingoData = [];
         this.completedCells = new Set();
-        // Delay before cleaning up download object URLs (in milliseconds)
-        // Provides sufficient time for browsers to initiate the download
-        this.DOWNLOAD_CLEANUP_DELAY_MS = 1000;
         this.init();
     }
 
