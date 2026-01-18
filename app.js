@@ -64,6 +64,9 @@ class TravelBingo {
             const sanitizedLocation = this.currentLocation.replace(/[^a-z0-9]/gi, '_').toLowerCase();
             const fileName = `travel-bingo-${sanitizedLocation}.png`;
 
+            // Track if we attempted to use Web Share API
+            let shareAttempted = false;
+
             // Check if Web Share API is supported
             // Use 'canShare' in navigator to safely check if the method exists
             if (navigator.share && 'canShare' in navigator) {
@@ -72,6 +75,7 @@ class TravelBingo {
                 
                 // Check if we can share files
                 if (navigator.canShare({ files: [file] })) {
+                    shareAttempted = true;
                     try {
                         await navigator.share({
                             files: [file],
@@ -87,7 +91,7 @@ class TravelBingo {
                             return;
                         }
                         // Share failed, fall through to download with appropriate message
-                        console.log('Share failed, falling back to download:', shareError);
+                        console.error('Share failed, falling back to download:', shareError);
                         this.showToast('Share unavailable. Downloading instead...', 'info');
                     }
                 }
@@ -104,9 +108,9 @@ class TravelBingo {
             // Clean up the object URL after a short delay to ensure download initiated
             setTimeout(() => URL.revokeObjectURL(link.href), this.DOWNLOAD_CLEANUP_DELAY_MS);
 
-            // Only show success message if we didn't already show a fallback message
-            // Check if we came from the fallback path (not from share failure)
-            if (!navigator.share || !('canShare' in navigator)) {
+            // Show success message only if Web Share API was not attempted
+            // (i.e., this is a regular download on a desktop browser)
+            if (!shareAttempted) {
                 this.showToast('Bingo card saved to your device!', 'success');
             }
         } catch (error) {
