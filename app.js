@@ -68,13 +68,12 @@ class TravelBingo {
             let shareAttempted = false;
 
             // Check if Web Share API is supported
-            // Use 'canShare' in navigator to safely check if the method exists
-            if (navigator.share && 'canShare' in navigator) {
+            if (navigator.share) {
                 // Create File object from blob
                 const file = new File([blob], fileName, { type: 'image/png' });
                 
-                // Check if we can share files
-                if (navigator.canShare({ files: [file] })) {
+                // Check if we can share files (canShare is part of Web Share API Level 2)
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
                     shareAttempted = true;
                     try {
                         await navigator.share({
@@ -92,7 +91,7 @@ class TravelBingo {
                         }
                         // Share failed, fall through to download with appropriate message
                         console.error('Share failed, falling back to download:', shareError);
-                        this.showToast('Share unavailable. Downloading instead...', 'info');
+                        this.showToast('Share failed. Downloading instead...', 'info');
                     }
                 }
             }
