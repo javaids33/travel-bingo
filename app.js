@@ -73,6 +73,8 @@ class TravelBingo {
                 const file = new File([blob], fileName, { type: 'image/png' });
                 
                 // Check if we can share files (canShare is part of Web Share API Level 2)
+                // Some browsers support navigator.share but not file sharing yet
+                // If canShare is not available, we'll fall through to download
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
                     shareAttempted = true;
                     try {
