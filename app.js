@@ -179,7 +179,7 @@ class TravelBingo {
 
     async generateChallenges(location, difficulty) {
         // Use Google Gemini API
-        const API_KEY = 'AIzaSyBte-tlbzRQPaZOXwAHQEBaEMLX4oL-G5I';
+        const API_KEY = '__GEMINI_API_KEY__';
         const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
 
         try {
