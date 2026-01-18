@@ -1,4 +1,3 @@
-
 import http.server
 import socketserver
 import json
@@ -7,20 +6,26 @@ import urllib.error
 import os
 
 PORT = 8092
-API_URL = "https://llm.meirl.dev/v1/chat/completions"
-# Using the key provided in previous context
-API_KEY = "syed" 
-MODEL_ID = "qwen3-coder-30B-instruct"
+# API_URL = "https://llm.meirl.dev/v1/chat/completions"
+# # Using the key provided in previous context
+# API_KEY = "syed" 
+# MODEL_ID = "qwen3-coder-30B-instruct"
 
 class ProxyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Configuration
+        self.API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent'
+        self.API_KEY = 'AIzaSyBKJ2-b6D2jUtsN9uJYhOLtASAXKV7wX-k' 
+
     def do_POST(self):
         if self.path == '/api/generate':
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length)
+            content_len = int(self.headers.get('Content-Length'))
+            post_body = self.rfile.read(content_len)
             
             try:
                 # Parse frontend request to get the prompt/messages
-                data = json.loads(post_data)
+                # data = json.loads(post_data) # This line is no longer needed as we pass post_body directly
                 
                 # Construct payload for the LLM API
                 # We expect the frontend to send the full messages array or just the location

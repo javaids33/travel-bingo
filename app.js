@@ -178,20 +178,22 @@ class TravelBingo {
     }
 
     async generateChallenges(location, difficulty) {
-        // Use the provided API configuration
-        const API_BASE_URL = 'https://llm.meirl.dev/v1';
-        const API_KEY = 'syed';
-        const MODEL_ID = 'qwen3-coder-30B-instruct';
+        // Use Google Gemini API
+        const API_KEY = 'AIzaSyBKJ2-b6D2jUtsN9uJYhOLtASAXKV7wX-k';
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
 
         try {
-            return await this.generateChallengesWithAI(location, difficulty, API_BASE_URL, API_KEY, MODEL_ID);
+            return await this.generateChallengesWithAI(location, difficulty, API_URL);
         } catch (error) {
             console.log('AI generation failed, using fallback:', error);
+            if (error.message.includes('429')) {
+                this.showToast('AI is busy (Rate Limit). Using fallback challenges.', 'warning');
+            }
             return this.generateFallbackChallenges(location, difficulty);
         }
     }
 
-    async generateChallengesWithAI(location, difficulty, baseUrl, apiKey, modelId) {
+    async generateChallengesWithAI(location, difficulty, apiUrl) {
         // Sanitize location input
         const sanitizedLocation = location.replace(/[^\w\s,.-]/g, '').substring(0, 100);
         const cacheKey = `travel_bingo_${sanitizedLocation.toLowerCase()}_${difficulty}`;
@@ -201,7 +203,6 @@ class TravelBingo {
         if (cached) {
             try {
                 const parsedCache = JSON.parse(cached);
-                // Simple version validation or expiry could go here, but for now we just return
                 console.log('Using cached challenges for:', sanitizedLocation);
                 return parsedCache;
             } catch (e) {
@@ -228,26 +229,18 @@ class TravelBingo {
 
         Example format: ["Try local street food", "Visit a historic temple", "Take a photo at sunset"]`;
 
-        // Use Local Proxy
-        const response = await fetch('/api/generate', {
+        // Call Gemini API
+        const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model: modelId,
-                messages: [
-                    {
-                        role: 'system',
-                        content: 'You are a travel expert who creates fun exploration challenges for travelers. Always respond with a valid JSON array of strings. Do not add any conversational text.'
-                    },
-                    {
-                        role: 'user',
-                        content: prompt
-                    }
-                ],
-                temperature: 0.7,
-                max_tokens: 1000
+                contents: [{
+                    parts: [{
+                        text: prompt
+                    }]
+                }]
             })
         });
 
@@ -259,8 +252,9 @@ class TravelBingo {
 
         const data = await response.json();
 
-        // Handle different potential response structures / clean up markdown
-        let content = data.choices[0]?.message?.content || '';
+        // Parse Gemini Response
+        // Structure: candidates[0].content.parts[0].text
+        let content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
         content = content.trim();
 
         // Remove markdown code blocks if present
@@ -281,6 +275,8 @@ class TravelBingo {
 
         // Ensure we have 24 challenges
         if (!Array.isArray(challenges) || challenges.length < 24) {
+            // If we got some checks but not enough, maybe we can use them?
+            // But simpler to just fail to fallback or pad. Let's pad.
             if (!Array.isArray(challenges)) throw new Error('AI response was not an array');
         }
 
