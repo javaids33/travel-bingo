@@ -27,7 +27,7 @@ jobs:
         uses: actions/configure-pages@v5
       - name: Inject API Key
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_KEY }}
         run: sed -i "s/__GEMINI_API_KEY__/$GEMINI_API_KEY/g" app.js
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
