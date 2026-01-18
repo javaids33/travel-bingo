@@ -4,6 +4,9 @@ class TravelBingo {
         this.currentLocation = '';
         this.bingoData = [];
         this.completedCells = new Set();
+        // Delay before cleaning up download object URLs (in milliseconds)
+        // Provides sufficient time for browsers to initiate the download
+        this.DOWNLOAD_CLEANUP_DELAY_MS = 1000;
         this.init();
     }
 
@@ -95,8 +98,7 @@ class TravelBingo {
             link.click();
             
             // Clean up the object URL after a short delay to ensure download initiated
-            // 1000ms provides sufficient time for the browser to initiate the download
-            setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+            setTimeout(() => URL.revokeObjectURL(link.href), this.DOWNLOAD_CLEANUP_DELAY_MS);
 
             this.showToast('Bingo card saved to your device!', 'success');
         } catch (error) {
