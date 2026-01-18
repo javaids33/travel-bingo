@@ -47,14 +47,73 @@ class TravelBingo {
                 scale: 2 // Higher quality
             });
 
-            // Create download link
-            const link = document.createElement('a');
+            // Convert canvas to blob
+            const blob = await new Promise((resolve, reject) => {
+                canvas.toBlob((resultBlob) => {
+                    if (resultBlob) {
+                        resolve(resultBlob);
+                    } else {
+                        reject(new Error('Failed to convert canvas to blob'));
+                    }
+                }, 'image/png');
+            });
+            
             const sanitizedLocation = this.currentLocation.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-            link.download = `travel-bingo-${sanitizedLocation}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
+            const fileName = `travel-bingo-${sanitizedLocation}.png`;
 
-            this.showToast('Bingo card saved to your device!', 'success');
+            // Track if we attempted to use Web Share API
+            let shareAttempted = false;
+
+            // Check if Web Share API is supported
+            if (navigator.share) {
+                // Create File object from blob
+                const file = new File([blob], fileName, { type: 'image/png' });
+                
+                // Check if we can share files (canShare is part of Web Share API Level 2)
+                // Some browsers support navigator.share but not file sharing yet
+                // If canShare is not available, we'll fall through to download
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    shareAttempted = true;
+                    try {
+                        await navigator.share({
+                            files: [file],
+                            title: 'Travel Bingo Card',
+                            text: `My Travel Bingo Card for ${this.currentLocation}`
+                        });
+                        this.showToast('Bingo card shared successfully!', 'success');
+                        return;
+                    } catch (shareError) {
+                        // User cancelled share or share failed
+                        if (shareError.name === 'AbortError') {
+                            this.showToast('Share cancelled', 'info');
+                            return;
+                        }
+                        // Share failed, fall through to download with appropriate message
+                        console.error('Share failed, falling back to download:', shareError);
+                        this.showToast('Share failed. Downloading instead...', 'info');
+                    }
+                }
+            }
+
+            // Fallback to traditional download for browsers without Web Share API
+            // or when Web Share API fails
+
+            // Show success and clean up only after the click event is dispatched
+            link.addEventListener('click', () => {
+                this.showToast('Bingo card saved to your device!', 'success');
+                // Clean up the object URL after a short delay to ensure download initiated
+                setTimeout(() => URL.revokeObjectURL(link.href), this.DOWNLOAD_CLEANUP_DELAY_MS);
+            });
+
+            link.click();
+            // Clean up the object URL after a short delay to ensure download initiated
+            setTimeout(() => URL.revokeObjectURL(link.href), this.DOWNLOAD_CLEANUP_DELAY_MS);
+
+            // Show success message only if Web Share API was not attempted
+            // (i.e., this is a regular download on a desktop browser)
+            if (!shareAttempted) {
+                this.showToast('Bingo card saved to your device!', 'success');
+            }
         } catch (error) {
             console.error('Export failed:', error);
             this.showToast('Failed to save bingo card. Please try taking a screenshot.', 'error');
