@@ -47,10 +47,41 @@ class TravelBingo {
                 scale: 2 // Higher quality
             });
 
-            // Create download link
-            const link = document.createElement('a');
+            // Convert canvas to blob
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            
             const sanitizedLocation = this.currentLocation.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-            link.download = `travel-bingo-${sanitizedLocation}.png`;
+            const fileName = `travel-bingo-${sanitizedLocation}.png`;
+
+            // Check if Web Share API is supported
+            if (navigator.share && navigator.canShare) {
+                // Create File object from blob
+                const file = new File([blob], fileName, { type: 'image/png' });
+                
+                // Check if we can share files
+                if (navigator.canShare({ files: [file] })) {
+                    try {
+                        await navigator.share({
+                            files: [file],
+                            title: 'Travel Bingo Card',
+                            text: `My Travel Bingo Card for ${this.currentLocation}`
+                        });
+                        this.showToast('Bingo card shared successfully!', 'success');
+                        return;
+                    } catch (shareError) {
+                        // User cancelled share or share failed
+                        if (shareError.name === 'AbortError') {
+                            this.showToast('Share cancelled', 'info');
+                            return;
+                        }
+                        console.log('Share failed, falling back to download:', shareError);
+                    }
+                }
+            }
+
+            // Fallback to traditional download for browsers without Web Share API
+            const link = document.createElement('a');
+            link.download = fileName;
             link.href = canvas.toDataURL('image/png');
             link.click();
 
