@@ -76,6 +76,42 @@ main {
     border-color: #667eea;
 }
 
+#locationInput:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.difficulty-control {
+    text-align: center;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+}
+
+.difficulty-control label {
+    font-weight: 600;
+    color: #555;
+    font-size: 1.1rem;
+}
+
+.select-input {
+    padding: 12px 20px;
+    font-size: 1rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    background-color: white;
+    cursor: pointer;
+    transition: all 0.3s;
+    min-width: 200px;
+}
+
+.select-input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
 .btn {
     padding: 15px 30px;
     font-size: 1rem;
@@ -135,8 +171,13 @@ main {
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 .bingo-section {
@@ -146,6 +187,13 @@ main {
 .bingo-header {
     text-align: center;
     margin-bottom: 30px;
+}
+
+.button-group {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 10px;
 }
 
 .bingo-header h2 {
@@ -231,8 +279,15 @@ main {
 }
 
 @keyframes celebrate {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); }
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
 }
 
 .info-section {

@@ -12,7 +12,8 @@ class TravelBingo {
         document.getElementById('generateBingo').addEventListener('click', () => this.generateBingoCard());
         document.getElementById('useMyLocation').addEventListener('click', () => this.useGeolocation());
         document.getElementById('resetBingo').addEventListener('click', () => this.reset());
-        
+        document.getElementById('downloadBingo').addEventListener('click', () => this.downloadBingoCard());
+
         // Enter key support
         document.getElementById('locationInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
@@ -25,10 +26,42 @@ class TravelBingo {
         const toast = document.getElementById('toast');
         toast.textContent = message;
         toast.className = 'toast show ' + type;
-        
+
         setTimeout(() => {
             toast.classList.remove('show');
         }, 3000);
+    }
+
+    async downloadBingoCard() {
+        const bingoCard = document.getElementById('bingoCard');
+        const btn = document.getElementById('downloadBingo');
+        const originalText = btn.textContent;
+
+        try {
+            btn.disabled = true;
+            btn.textContent = '📸 Capturing...';
+
+            // Use html2canvas to create image
+            const canvas = await html2canvas(bingoCard, {
+                backgroundColor: '#ffffff',
+                scale: 2 // Higher quality
+            });
+
+            // Create download link
+            const link = document.createElement('a');
+            const sanitizedLocation = this.currentLocation.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+            link.download = `travel-bingo-${sanitizedLocation}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+
+            this.showToast('Bingo card saved to your device!', 'success');
+        } catch (error) {
+            console.error('Export failed:', error);
+            this.showToast('Failed to save bingo card. Please try taking a screenshot.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
     }
 
     async useGeolocation() {
@@ -47,11 +80,11 @@ class TravelBingo {
             });
 
             const { latitude, longitude } = position.coords;
-            
+
             // Reverse geocode to get location name
             const locationName = await this.reverseGeocode(latitude, longitude);
             document.getElementById('locationInput').value = locationName;
-            
+
             btn.textContent = '📍 Location detected!';
             this.showToast('Location detected successfully!', 'success');
             setTimeout(() => {
@@ -77,15 +110,15 @@ class TravelBingo {
                 }
             );
             const data = await response.json();
-            
+
             // Extract meaningful location name with null checks
             if (!data || !data.address) {
                 return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
             }
-            
+
             const address = data.address;
             const parts = [];
-            
+
             if (address.tourism || address.attraction) {
                 parts.push(address.tourism || address.attraction);
             }
@@ -107,31 +140,32 @@ class TravelBingo {
 
     async generateBingoCard() {
         const location = document.getElementById('locationInput').value.trim();
-        
+        const difficulty = document.getElementById('difficultySelect').value;
+
         if (!location) {
             this.showToast('Please enter a location or use your current location', 'error');
             return;
         }
 
         this.currentLocation = location;
-        
+
         // Show loading
         document.getElementById('loadingIndicator').style.display = 'block';
         document.getElementById('generateBingo').disabled = true;
 
         try {
             // Generate bingo challenges
-            const challenges = await this.generateChallenges(location);
+            const challenges = await this.generateChallenges(location, difficulty);
             this.bingoData = challenges;
             this.completedCells.clear();
-            
+
             // Display bingo card
             this.displayBingoCard();
-            
+
             // Show bingo section
             document.getElementById('bingoSection').style.display = 'block';
-            document.getElementById('currentLocation').textContent = `📍 ${location}`;
-            
+            document.getElementById('currentLocation').textContent = `📍 ${location} (${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)})`;
+
             // Scroll to bingo card
             document.getElementById('bingoSection').scrollIntoView({ behavior: 'smooth' });
         } catch (error) {
@@ -143,133 +177,194 @@ class TravelBingo {
         }
     }
 
-    async generateChallenges(location) {
-        // Try to use AI API if available, otherwise use fallback
-        const apiKey = this.getApiKey();
-        
-        if (apiKey) {
-            try {
-                return await this.generateChallengesWithAI(location, apiKey);
-            } catch (error) {
-                console.log('AI generation failed, using fallback:', error);
-                return this.generateFallbackChallenges(location);
-            }
-        } else {
-            return this.generateFallbackChallenges(location);
+    async generateChallenges(location, difficulty) {
+        // Use the provided API configuration
+        const API_BASE_URL = 'https://llm.meirl.dev/v1';
+        const API_KEY = 'syed';
+        const MODEL_ID = 'qwen3-coder-30B-instruct';
+
+        try {
+            return await this.generateChallengesWithAI(location, difficulty, API_BASE_URL, API_KEY, MODEL_ID);
+        } catch (error) {
+            console.log('AI generation failed, using fallback:', error);
+            return this.generateFallbackChallenges(location, difficulty);
         }
     }
 
-    getApiKey() {
-        // Check for API key in localStorage (for development)
-        const storedKey = localStorage.getItem('openai_api_key');
-        if (storedKey) {
-            return storedKey;
-        }
-        
-        // Note: OPENAI_API_KEY should be injected at build time for production
-        // Never hardcode API keys in client-side code
-        
-        return null;
-    }
-
-    async generateChallengesWithAI(location, apiKey) {
-        // Sanitize location input to prevent prompt injection
+    async generateChallengesWithAI(location, difficulty, baseUrl, apiKey, modelId) {
+        // Sanitize location input
         const sanitizedLocation = location.replace(/[^\w\s,.-]/g, '').substring(0, 100);
+        const cacheKey = `travel_bingo_${sanitizedLocation.toLowerCase()}_${difficulty}`;
+
+        // 1. Check Cache
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+            try {
+                const parsedCache = JSON.parse(cached);
+                // Simple version validation or expiry could go here, but for now we just return
+                console.log('Using cached challenges for:', sanitizedLocation);
+                return parsedCache;
+            } catch (e) {
+                localStorage.removeItem(cacheKey);
+            }
+        }
+
+        let difficultyInstruction = '';
+        if (difficulty === 'easy') {
+            difficultyInstruction = 'Focus on popular, easily accessible landmarks and simple activities (e.g., "Visit Central Park", "Eat a pizza").';
+        } else if (difficulty === 'hard') {
+            difficultyInstruction = 'Focus on obscure hidden gems, specific challenges, or physically demanding tasks (e.g., "Walk across George Washington Bridge", "Visit 3 different boroughs").';
+        } else {
+            difficultyInstruction = 'Mix popular spots with some specific activities (e.g., "Walk across 2 bridges", "Find a hidden speakeasy").';
+        }
+
+        const prompt = `Generate exactly 24 unique, fun, and interesting exploration challenges for someone visiting ${sanitizedLocation}. 
+        Difficulty Level: ${difficulty.toUpperCase()}.
+        ${difficultyInstruction}
         
-        const prompt = `Generate exactly 24 unique, fun, and interesting exploration challenges for someone visiting ${sanitizedLocation}. These should be specific to the location and help them discover local culture, food, landmarks, nature, and hidden gems. Make them actionable and suitable for a bingo card game. Each challenge should be 3-8 words long. Return as a JSON array of strings.
+        These should be specific to the location and help them discover local culture, food, landmarks, nature, and hidden gems. 
+        Make them quantifiable where possible (e.g., "Visit 2 museums" instead of "Visit museums").
+        Each challenge should be 3-10 words long. Return STRICTLY a JSON array of strings. Do not include markdown formatting like \`\`\`json.
 
-Example format: ["Try local street food", "Visit a historic temple", "Take a photo at sunset"]`;
+        Example format: ["Try local street food", "Visit a historic temple", "Take a photo at sunset"]`;
 
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        // Use Local Proxy
+        const response = await fetch('/api/generate', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model: 'gpt-3.5-turbo',
+                model: modelId,
                 messages: [
                     {
                         role: 'system',
-                        content: 'You are a travel expert who creates fun exploration challenges for travelers. Always respond with valid JSON arrays.'
+                        content: 'You are a travel expert who creates fun exploration challenges for travelers. Always respond with a valid JSON array of strings. Do not add any conversational text.'
                     },
                     {
                         role: 'user',
                         content: prompt
                     }
                 ],
-                temperature: 0.8,
-                max_tokens: 500
+                temperature: 0.7,
+                max_tokens: 1000
             })
         });
 
         if (!response.ok) {
-            throw new Error('API request failed');
+            const errorText = await response.text();
+            console.error('AI API Error:', response.status, errorText);
+            throw new Error(`AI Request failed: ${response.status}`);
         }
 
         const data = await response.json();
-        const content = data.choices[0].message.content.trim();
-        
+
+        // Handle different potential response structures / clean up markdown
+        let content = data.choices[0]?.message?.content || '';
+        content = content.trim();
+
+        // Remove markdown code blocks if present
+        if (content.startsWith('```json')) {
+            content = content.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        } else if (content.startsWith('```')) {
+            content = content.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        }
+
         // Parse JSON response with error handling
         let challenges;
         try {
             challenges = JSON.parse(content);
         } catch (parseError) {
-            console.error('Failed to parse AI response:', parseError);
+            console.error('Failed to parse AI response:', parseError, 'Content:', content);
             throw new Error('Invalid JSON from AI');
         }
-        
+
         // Ensure we have 24 challenges
         if (!Array.isArray(challenges) || challenges.length < 24) {
-            throw new Error('Insufficient challenges generated');
+            if (!Array.isArray(challenges)) throw new Error('AI response was not an array');
         }
-        
+
         // Take only first 24
         challenges = challenges.slice(0, 24);
-        
+
         // Insert FREE space in the middle (position 12)
-        challenges.splice(12, 0, 'FREE SPACE');
-        
+        if (challenges.length >= 12) {
+            challenges.splice(12, 0, 'FREE SPACE');
+        } else {
+            while (challenges.length < 12) challenges.push("Explore!");
+            challenges.push('FREE SPACE');
+            while (challenges.length < 25) challenges.push("Explore!");
+        }
+
+        // Pad if still short (rare case)
+        while (challenges.length < 25) {
+            challenges.push("Discover local gem");
+        }
+
+        // 2. Set Cache
+        localStorage.setItem(cacheKey, JSON.stringify(challenges));
+
         return challenges;
     }
 
-    generateFallbackChallenges(location) {
+    generateFallbackChallenges(location, difficulty) {
         // Generic challenges that work for most locations
-        const genericChallenges = [
-            'Try local street food',
-            'Visit a historic landmark',
-            'Take a scenic photo',
-            'Talk to a local',
-            'Find a hidden gem',
-            'Visit a local market',
-            'Try traditional cuisine',
-            'Explore a park or garden',
-            'Visit a museum',
-            'Find street art',
-            'Try a local beverage',
-            'Visit a viewpoint',
-            'Explore on foot',
-            'Visit a place of worship',
-            'Find a bookstore or library',
-            'Try local dessert',
-            'Watch sunset or sunrise',
-            'Visit waterfront area',
-            'Find local crafts',
-            'Take public transport',
-            'Visit a cafe',
-            'Explore a neighborhood',
-            'Find a local festival',
-            'Take a nature walk'
-        ];
+        let genericChallenges = [];
 
-        // Shuffle and add location-specific context
-        const shuffled = this.shuffleArray([...genericChallenges]);
-        const challenges = shuffled.slice(0, 24);
-        
-        // Insert FREE space in the middle
-        challenges.splice(12, 0, 'FREE SPACE');
-        
-        return challenges;
+        if (difficulty === 'easy') {
+            genericChallenges = [
+                "Visit a local park", "Try a local snack", "Take a photo of a statue",
+                "Find a street musician", "Visit a market", "Spot a red car",
+                "Find a building older than 50 years", "Buy a souvenir", "Walk 5,000 steps",
+                "Visit a library", "Find a fountain", "Eat an ice cream",
+                "Take a selfie with a view", "Spot a cat", "Find a blue door",
+                "Visit a coffee shop", "Find a flag", "Hear church bells",
+                "Spot a bicycle", "Find a post office", "See a bus",
+                "Find a flower shop", "Walk down a narrow street", "Find a bakery"
+            ];
+        } else if (difficulty === 'hard') {
+            genericChallenges = [
+                'Walk 20,000 steps', 'Find a hidden bar', 'Visit 3 different neighborhoods', 'Eat something spicy',
+                'Climb to the highest point', 'Wake up for sunrise', 'Use 3 modes of transport', 'Find a secret garden',
+                'Eat at a "locals only" spot', 'Visit a museum off-peak', 'Find a specific street art', 'Negotiate a price',
+                'Learn 5 local phrases', 'Visit a place built before 1900', 'Find a local craftsperson', 'Walk across a bridge twice',
+                'Visit a library', 'Find a building with no windows', 'Spot rare wildlife', 'Eat food you cannot pronounce',
+                'Visit a cemetery', 'Find a place with no tourists', 'Take a photo from a rooftop', 'Run in a park'
+            ];
+        } else {
+            // Medium
+            genericChallenges = [
+                'Try local street food', 'Visit a historic landmark', 'Take a scenic photo', 'Talk to a local',
+                'Find a hidden gem', 'Visit a local market', 'Try traditional cuisine', 'Explore a park or garden',
+                'Visit a museum', 'Find street art', 'Try a local beverage', 'Visit a viewpoint',
+                'Explore on foot', 'Visit a place of worship', 'Find a bookstore or library', 'Try local dessert',
+                'Watch sunset or sunrise', 'Visit waterfront area', 'Find local crafts', 'Take public transport',
+                'Visit a cafe', 'Explore a neighborhood', 'Find a local festival', 'Take a nature walk'
+            ];
+        }
+
+        // Fill if needed
+        while (genericChallenges.length < 24) {
+            genericChallenges.push('Explore somewhere new');
+        }
+
+        return this.finalizeBoard(genericChallenges);
+    }
+
+
+
+    finalizeBoard(challenges) {
+        // Shuffle
+        const shuffled = this.shuffleArray([...challenges]);
+        const finalChallenges = shuffled.slice(0, 24);
+
+        // Fix: Ensure we always have 25 items by padding if needed
+        while (finalChallenges.length < 24) {
+            finalChallenges.push('Explore!');
+        }
+
+        finalChallenges.splice(12, 0, 'FREE SPACE');
+        return finalChallenges;
     }
 
     shuffleArray(array) {
@@ -306,7 +401,7 @@ Example format: ["Try local street food", "Visit a historic temple", "Take a pho
 
     toggleCell(index) {
         const cell = document.querySelector(`[data-index="${index}"]`);
-        
+
         if (this.completedCells.has(index)) {
             this.completedCells.delete(index);
             cell.classList.remove('completed');
@@ -356,7 +451,7 @@ Example format: ["Try local street food", "Visit a historic temple", "Take a pho
     celebrateBingo() {
         const message = document.getElementById('bingoMessage');
         message.textContent = '🎉 BINGO! You completed a line! 🎉';
-        
+
         // Optional: Add confetti or more celebration effects
         this.createConfetti();
     }
@@ -365,7 +460,7 @@ Example format: ["Try local street food", "Visit a historic temple", "Take a pho
         // Simple confetti effect using emoji
         const confettiChars = ['🎉', '🎊', '✨', '🌟', '⭐'];
         const container = document.querySelector('.bingo-stats');
-        
+
         for (let i = 0; i < 10; i++) {
             const confetti = document.createElement('span');
             confetti.textContent = confettiChars[Math.floor(Math.random() * confettiChars.length)];
@@ -375,9 +470,9 @@ Example format: ["Try local street food", "Visit a historic temple", "Take a pho
             confetti.style.fontSize = '2rem';
             confetti.style.zIndex = '1000';
             confetti.style.pointerEvents = 'none';
-            
+
             document.body.appendChild(confetti);
-            
+
             // Animate falling
             const duration = 2000 + Math.random() * 2000;
             const animation = confetti.animate([
@@ -387,7 +482,7 @@ Example format: ["Try local street food", "Visit a historic temple", "Take a pho
                 duration: duration,
                 easing: 'ease-in'
             });
-            
+
             animation.onfinish = () => confetti.remove();
         }
     }
@@ -398,7 +493,7 @@ Example format: ["Try local street food", "Visit a historic temple", "Take a pho
         this.currentLocation = '';
         this.bingoData = [];
         this.completedCells.clear();
-        
+
         // Scroll back to top
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }

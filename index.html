@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Travel Bingo - Explore with AI</title>
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
     <div class="container">
         <header>
@@ -22,6 +24,15 @@
                         📍 Use My Location
                     </button>
                 </div>
+
+                <div class="difficulty-control">
+                    <label for="difficultySelect">Challenge Level:</label>
+                    <select id="difficultySelect" class="select-input">
+                        <option value="easy">Easy (Casual Explorer)</option>
+                        <option value="medium" selected>Medium (Adventurer)</option>
+                        <option value="hard">Hard (Pro Traveler)</option>
+                    </select>
+                </div>
                 <button id="generateBingo" class="btn btn-primary">
                     Generate Bingo Card
                 </button>
@@ -35,7 +46,10 @@
                 <div class="bingo-header">
                     <h2>Your Travel Bingo Card</h2>
                     <p id="currentLocation" class="location-display"></p>
-                    <button id="resetBingo" class="btn btn-small">🔄 New Card</button>
+                    <div class="button-group">
+                        <button id="downloadBingo" class="btn btn-secondary btn-small">⬇️ Save to Phone</button>
+                        <button id="resetBingo" class="btn btn-small">🔄 New Card</button>
+                    </div>
                 </div>
                 <div id="bingoCard" class="bingo-card"></div>
                 <div class="bingo-stats">
@@ -63,7 +77,9 @@
     <!-- Error/Info Toast -->
     <div id="toast" class="toast"></div>
 
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script src="config.js"></script>
     <script src="app.js"></script>
 </body>
+
 </html>
