@@ -49,9 +49,9 @@ class TravelBingo {
 
             // Convert canvas to blob
             const blob = await new Promise((resolve, reject) => {
-                canvas.toBlob((blob) => {
-                    if (blob) {
-                        resolve(blob);
+                canvas.toBlob((resultBlob) => {
+                    if (resultBlob) {
+                        resolve(resultBlob);
                     } else {
                         reject(new Error('Failed to convert canvas to blob'));
                     }
@@ -94,8 +94,9 @@ class TravelBingo {
             link.href = URL.createObjectURL(blob);
             link.click();
             
-            // Clean up the object URL after download
-            setTimeout(() => URL.revokeObjectURL(link.href), 100);
+            // Clean up the object URL after a short delay to ensure download initiated
+            // 1000ms provides sufficient time for the browser to initiate the download
+            setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 
             this.showToast('Bingo card saved to your device!', 'success');
         } catch (error) {
