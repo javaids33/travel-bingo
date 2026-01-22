@@ -57,7 +57,7 @@ class TravelBingo {
                     }
                 }, 'image/png');
             });
-            
+
             const sanitizedLocation = this.currentLocation.replace(/[^a-z0-9]/gi, '_').toLowerCase();
             const fileName = `travel-bingo-${sanitizedLocation}.png`;
 
@@ -68,7 +68,7 @@ class TravelBingo {
             if (navigator.share) {
                 // Create File object from blob
                 const file = new File([blob], fileName, { type: 'image/png' });
-                
+
                 // Check if we can share files (canShare is part of Web Share API Level 2)
                 // Some browsers support navigator.share but not file sharing yet
                 // If canShare is not available, we'll fall through to download
@@ -99,18 +99,17 @@ class TravelBingo {
             // or when Web Share API fails
 
             // Show success and clean up only after the click event is dispatched
-            link.addEventListener('click', () => {
-                this.showToast('Bingo card saved to your device!', 'success');
-                // Clean up the object URL after a short delay to ensure download initiated
-                setTimeout(() => URL.revokeObjectURL(link.href), this.DOWNLOAD_CLEANUP_DELAY_MS);
-            });
-
+            // Fallback to traditional download for browsers without Web Share API
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            document.body.appendChild(link);
             link.click();
-            // Clean up the object URL after a short delay to ensure download initiated
-            setTimeout(() => URL.revokeObjectURL(link.href), this.DOWNLOAD_CLEANUP_DELAY_MS);
+            document.body.removeChild(link);
 
-            // Show success message only if Web Share API was not attempted
-            // (i.e., this is a regular download on a desktop browser)
+            // Clean up
+            setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+
             if (!shareAttempted) {
                 this.showToast('Bingo card saved to your device!', 'success');
             }
@@ -237,9 +236,18 @@ class TravelBingo {
     }
 
     async generateChallenges(location, difficulty) {
-        // Use Google Gemini API
-        const API_KEY = '__GEMINI_API_KEY__';
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
+        // Determine API URL based on environment
+        const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+
+        let API_URL;
+        if (isLocal) {
+            // Use local proxy
+            API_URL = '/api/generate';
+        } else {
+            // Use direct Google Gemini API for production (GitHub Pages)
+            const API_KEY = '__GEMINI_API_KEY__';
+            API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
+        }
 
         try {
             return await this.generateChallengesWithAI(location, difficulty, API_URL);
