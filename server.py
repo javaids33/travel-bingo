@@ -12,11 +12,12 @@ PORT = 8092
 # MODEL_ID = "qwen3-coder-30B-instruct"
 
 class ProxyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
+    # Configuration
+    API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent'
+    API_KEY = 'AIzaSyBfDqxUFzCDCYm7Cyz7eagSwC_sEw02aRU'
+
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Configuration
-        self.API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent'
-        self.API_KEY = 'AIzaSyBfDqxUFzCDCYm7Cyz7eagSwC_sEw02aRU' 
+        super().__init__(*args, **kwargs) 
 
     def do_POST(self):
         if self.path == '/api/generate':
@@ -36,11 +37,11 @@ class ProxyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 # Frontend sends: { model, messages, temperature, max_tokens }
                 
                 req = urllib.request.Request(
-                    API_URL,
-                    data=post_data, # Pass through the body
+                    self.API_BASE_URL,
+                    data=post_body, # Pass through the body
                     headers={
                         "Content-Type": "application/json",
-                        "Authorization": f"Bearer {API_KEY}",
+                        "x-goog-api-key": self.API_KEY,
                         "User-Agent": "TravelBingoProxy/1.0"
                     },
                     method="POST"
